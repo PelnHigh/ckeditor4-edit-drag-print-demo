@@ -1,0 +1,428 @@
+<!DOCTYPE html>
+<!--
+Copyright (c) 2003-2021, CKSource - Frederico Knabben. All rights reserved.
+For licensing, see LICENSE.md or https://ckeditor.com/legal/ckeditor-oss-license
+-->
+<html lang="en">
+
+<head>
+  <meta charset="utf-8">
+  <title>EDITOR</title>
+  <script src="./interact.min.js"></script>
+  <script src="./ckeditor/ckeditor.js"></script>
+  <meta http-equiv="Pragma" content="no-cache">
+  <meta http-equiv="Cache-Control" content="no-cache">
+  <meta http-equiv="Expires" content="0">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <meta name="description"
+    content="Try the latest sample of CKEditor 4 and learn more about customizing your WYSIWYG editor with endless possibilities.">
+</head>
+
+<style>
+  html {
+    height: 100%;
+  }
+
+  .drag_div_bk {
+    box-sizing: border-box;
+    border: 1px solid #999;
+    position: relative;
+  }
+
+  .drag_div_bk button {
+    caret-color: rgba(0, 0, 0, 0);
+    cursor: pointer;
+    border-right: 1px solid #fff;
+    top: -20px;
+    left: 0px;
+    line-height: 20px;
+    height: 20px;
+    text-align: center;
+    width: 20px;
+    position: absolute;
+    background-color: #1890ff;
+    border-left: none !important;
+    border-top: none !important;
+    border-bottom: none !important;
+    color: #fff;
+  }
+
+  .drag_div_bk button:last-child {
+    top: -20px;
+    left: 20px;
+    line-height: 20px;
+    height: 20px;
+    text-align: center;
+    width: 20px;
+    position: absolute;
+    background-color: #1890ff;
+    border: none !important;
+    color: #fff;
+  }
+
+
+  .drag_div:hover {
+    box-shadow: 0px 1px 5px #999;
+    border-radius: 3px;
+  }
+
+  .drag_div {
+    caret-color: rgba(0, 0, 0, 0);
+    box-sizing: border-box;
+  }
+
+  .draggable {
+    width: 15%;
+    min-height: 6.5em;
+    margin: 1rem 0 0 1rem;
+    background-color: #29e;
+    color: white;
+    border-radius: 0.75em;
+    padding: 4%;
+    touch-action: none;
+    user-select: none;
+  }
+
+  .draggable2 {
+    width: 15%;
+    min-height: 6.5em;
+    margin: 1rem 0 0 1rem;
+    background-color: #29e;
+    color: white;
+    border-radius: 0.75em;
+    padding: 4%;
+    touch-action: none;
+    user-select: none;
+  }
+
+  #cke_editor {
+    display: none !important;
+  }
+
+  #editor {
+    border: none !important;
+    outline: none !important;
+  }
+
+  body {
+    margin: 0;
+  }
+
+  /* 滚动条样式 */
+  ::-webkit-scrollbar {
+    /* 滚动条整体样式 */
+    width: 8px !important;
+    border: none !important;
+
+    /* 高宽分别对应横竖滚动条的尺寸 */
+    height: 8px !important;
+  }
+
+  ::-webkit-scrollbar-thumb {
+    border: none !important;
+    background: rgb(202, 202, 202);
+    outline: 0 !important;
+    /* 滚动条里面小方块 */
+    border-radius: 8px;
+    box-shadow: inset 0 0 5px var(--background-color);
+    -webkit-box-shadow: inset 0 0 5px var(--background-color);
+  }
+
+  ::-webkit-scrollbar-track {
+    background: transparent;
+    border-radius: 0;
+    border: none !important;
+
+    /* 滚动条里面轨道 */
+    box-shadow: inset 0 0 5px var(--background-color);
+    -webkit-box-shadow: inset 0 0 8px var(--background-color);
+  }
+
+  ::-webkit-scrollbar-corner {
+    background: rgba(0, 0, 0, 0);
+  }
+
+  * {
+    scrollbar-color: #cacaca transparent;
+    scrollbar-width: thin;
+  }
+</style>
+
+<body>
+  <div id="editor">
+  </div>
+  <div id="otherEditor" style="display: none;"></div>
+</body>
+
+<script>
+  var scale = 1;
+  var paperSize = 'A4'; /* 纸张大小默认A4 */
+  // Replace the <textarea id="editor1"> with a CKEditor 4
+  // instance, using default configuration.
+  var editorElement = CKEDITOR.document.getById('editor');
+  CKEDITOR.inline('editor', {
+    title: 'CITYOCEAN EDITOR',
+    allowedContent: true,
+    readOnly: false,
+    toolbar: [],
+    bodyClass: 'co-editor'
+  });
+  CKEDITOR.instances['editor'].config.exportPdf_fileName = 'CITYOCEAN';
+
+  // addEventListener support for IE8
+  function bindEvent(element, eventName, eventHandler) {
+    if (element.addEventListener) {
+      element.addEventListener(eventName, eventHandler, false);
+    } else if (element.attachEvent) {
+      element.attachEvent('on' + eventName, eventHandler);
+    }
+  }
+
+  // Send a message to the parent
+  function sendMessage() {
+    // Make sure you are sending a string, and to stringify JSON
+    window.parent.postMessage({
+      newHtml: CKEDITOR.instances.editor.element.$.innerHTML,
+    }, '*');
+  };
+
+  // var results = document.getElementById('results'),
+  // 	messageButton = document.getElementById('message_button');
+
+  // Listen to messages from parent window
+  bindEvent(window, 'message', function (e) {
+    if (e.data.paperSize) {
+      paperSize = e.data.paperSize;
+    }
+
+    if (e.data.html) {
+      setTimeout(() => {
+        setHtml(e.data.html);
+        fillOnePage();
+      }, 1000);
+    }
+
+    if (e.data.print) {
+      setDomClass();
+      window.print();
+    }
+
+    if (e.data.loaded) {
+      showEditor();
+    }
+
+    if (e.data.disabled != null) {
+      setDisabled(e.data.disabled);
+    }
+
+    if (e.data.printOtherHtml) {
+      setDomClass();
+      document.getElementById("editor").style.display = 'none';
+      document.getElementById("otherEditor").style.display = 'block';
+      document.getElementById("editor").focus();
+      document.getElementById("otherEditor").innerHTML = e.data.printOtherHtml;
+      window.print();
+    }
+
+    if (e.data.pdfName) {
+      CKEDITOR.instances['editor'].config.exportPdf_fileName = e.data.pdfName;
+      CKEDITOR.instances['editor'].execCommand('exportPdf');
+    }
+  });
+
+  function setDisabled(diasbled) {
+    CKEDITOR.instances['editor'].config.readOnly = diasbled;
+  }
+
+  function setHtml(html) {
+    editorElement.setHtml(html);
+  }
+
+  CKEDITOR.instances['editor'].on('change', function () {
+    sendMessage();
+  });
+
+  function showEditor() {
+    document.getElementById("editor").style.display = 'block';
+    document.getElementById("otherEditor").style.display = 'none';
+    document.getElementById("otherEditor").innerHTML = '';
+  }
+
+  function fillOnePage() {
+    const parents = document.querySelectorAll('[data-parent-of-fill]');
+    if (parents && parents.length) {
+      Array.prototype.slice.call(parents, 0)
+        .forEach(el => {
+          doFill(el);
+        })
+    } else {
+      doFill();
+    }
+
+    sendMessage();
+
+    function doFill(_parentElement) {
+      const parent = _parentElement || document.querySelector('#editor');
+      const elements = parent.querySelectorAll('[data-to-be-fill]')
+      if (!elements.length) { return; }
+
+      const scale = 100 / (elements[0].getAttribute('data-zoom-value') || 100);
+      const height = { 'A4': 1032, 'Letter': 974, }[paperSize];
+      const current = parent.clientHeight / (!!parent.getAttribute('data-need-scale') ? scale : 1);
+      const toFill = (height - current) * scale;
+      if (toFill <= 0) { return; }
+
+      elements.forEach(element => {
+        element.style.paddingBottom = toFill + 'px';
+      });
+    }
+
+  }
+
+  window.onafterprint = function () {
+  }
+
+  window.dragMoveListener = dragMoveListener
+
+  window.onclick = function () {
+    setDomClass();
+  };
+
+  function dragMoveListener(event) {
+    var target = event.target
+    // keep the dragged position in the data-x/data-y attributes
+    var x = (parseFloat(target.getAttribute('data-x')) || 0) + event.dx
+    var y = (parseFloat(target.getAttribute('data-y')) || 0) + event.dy
+    const ascale = target.getAttribute("data-scale");
+    // translate the element
+    target.style.transform = `translate(${x}px,${y}px) scale(${ascale || 1})`
+    // update the posiion attributes
+    target.setAttribute('data-x', x)
+    target.setAttribute('data-y', y)
+  }
+
+  function setDomClass() {
+    const domData = document.getElementsByClassName('drag_div_bk');
+    if (domData.length > 0) {
+      Array.prototype.forEach.call(domData, function (el) {
+        el.classList.remove('drag_div_bk');
+        el.classList.add('drag_div');
+      });
+
+      for (var i = 0; i < domData.length; i++) {
+        domData[i].classList.add('drag_div');
+        domData[i].classList.remove('drag_div_bk');
+      }
+    }
+
+    const buttonData = document.querySelectorAll('button');
+    if (buttonData.length > 0) {
+      for (var i = 0; i < buttonData.length; i++) {
+        if (buttonData[i]) {
+          buttonData[i].remove();
+        }
+      }
+    }
+    scale = 1;
+  }
+
+  const position = {
+    x: 0,
+    y: 0
+  }
+  interact('.drag_div').draggable({
+    listeners: {
+      start(event) {
+        console.log(event.type, event.target)
+      },
+      move: dragMoveListener,
+    }
+  })
+
+  interact('.drag_div')
+    .on('hold', function (event) {
+      const selection = document.getSelection();
+      const range = document.createRange();
+      range.selectNode(event.currentTarget);
+      selection.removeAllRanges();
+      selection.addRange(range);
+    })
+    .on('doubletap', function (event) {
+      event.currentTarget.classList.add('drag_div_bk');
+      event.currentTarget.classList.remove('drag_div');
+      event.preventDefault();
+      event.currentTarget.addEventListener("click", function (event) {
+        event.stopPropagation();
+      })
+
+      if (event.currentTarget.classList.contains('drag_div_bk')) {
+        if (!event.currentTarget.querySelector("button")) {
+          let btn = document.createElement("button");
+          btn.innerHTML = "-";
+          event.currentTarget.appendChild(btn);
+          btn.onclick = function (e) {
+            var ascale = event.currentTarget.getAttribute("data-scale") || 1;
+            if (Number(ascale) > 0.1) {
+              ascale = Number(ascale) - 0.1;
+              var x = (parseFloat(event.currentTarget.getAttribute('data-x')) || 0);
+              var y = (parseFloat(event.currentTarget.getAttribute('data-y')) || 0);
+              // translate the element
+              event.currentTarget.style.transform = `translate(${x}px,${y}px) scale(${ascale || 1})`;
+              event.currentTarget.style.webkitTransform = `translate(${x}px,${y}px) scale(${ascale || 1})`;
+              event.currentTarget.style.msTransform = `translate(${x}px,${y}px) scale(${ascale || 1})`;
+              event.currentTarget.setAttribute("data-scale", ascale);
+            }
+          };
+
+          let btn2 = document.createElement("button");
+          btn2.innerHTML = "+";
+          event.currentTarget.appendChild(btn2);
+          btn2.onclick = function (e) {
+            var ascale = event.currentTarget.getAttribute("data-scale") || 1;
+            ascale = Number(ascale) + 0.1;
+            var x = (parseFloat(event.currentTarget.getAttribute('data-x')) || 0);
+            var y = (parseFloat(event.currentTarget.getAttribute('data-y')) || 0);
+            event.currentTarget.style.transform = `translate(${x}px,${y}px) scale(${ascale || 1})`;
+            event.currentTarget.style.webkitTransform = `translate(${x}px,${y}px) scale(${ascale || 1})`;
+            event.currentTarget.style.msTransform = `translate(${x}px,${y}px) scale(${ascale || 1})`;
+            event.currentTarget.setAttribute("data-scale", ascale);
+          };
+        }
+      }
+    })
+    .resizable({
+      edges: {
+        top: false,
+        left: true,
+        bottom: false,
+        right: true
+      },
+      listeners: {
+        move: function (event) {
+          let {
+            x,
+            y
+          } = event.target.dataset
+          x = (parseFloat(position.x) || 0) + event.deltaRect.left
+          y = (parseFloat(position.y) || 0) + event.deltaRect.top
+
+          const ascale = event.currentTarget.getAttribute("data-scale");
+
+          Object.assign(event.target.style, {
+            width: `${event.rect.width}px`,
+            height: `${event.rect.height}px`,
+            transform: `translate(${x}px, ${y}px) scale(${ascale || 1})`
+          })
+
+          Object.assign(event.target.dataset, {
+            x,
+            y
+          })
+        }
+      }
+    })
+
+</script>
+</body>
+
+</html>
